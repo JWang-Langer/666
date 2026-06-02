@@ -1,0 +1,98 @@
+/* ===== Typography ===== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&display=swap');
+
+@font-face {
+  font-family: 'Monument Extended';
+  src: url('/fonts/latin-bold.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Display text — bold, uppercase, impactful */
+.display-xl {
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 8vw, 9rem);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.03em;
+  line-height: 0.9;
+}
+
+.display-lg {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 5rem);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  line-height: 1.0;
+}
+
+.display-md {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3vw, 3rem);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+/* Body text */
+.body-lg {
+  font-family: var(--font-body);
+  font-size: clamp(1rem, 1.5vw, 1.25rem);
+  font-weight: 300;
+  line-height: 1.7;
+  letter-spacing: 0.02em;
+}
+
+.body-md {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 300;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+}
+
+/* Chinese text mix */
+.text-cjk {
+  font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', var(--font-body);
+  font-weight: 400;
+}
+
+/* Glitch data attribute for pseudo-elements */
+[data-glitch] {
+  position: relative;
+}
+[data-glitch]::before,
+[data-glitch]::after {
+  content: attr(data-glitch);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+[data-glitch]::before {
+  color: var(--color-red);
+  clip-path: inset(0 0 60% 0);
+  transform: translate(-2px, 0);
+  animation: glitch-shift 3s infinite linear alternate-reverse;
+}
+[data-glitch]::after {
+  color: var(--color-teal);
+  clip-path: inset(60% 0 0 0);
+  transform: translate(2px, 0);
+  animation: glitch-shift 2.7s infinite linear alternate;
+}
+
+/* Color utility classes */
+.text-yellow { color: var(--color-yellow); }
+.text-red { color: var(--color-red); }
+.text-teal { color: var(--color-teal); }
+.text-cream { color: var(--color-cream); }
+.text-white { color: var(--color-white); }
+.bg-black { background-color: var(--color-black); }
+.bg-near-black { background-color: var(--color-near-black); }
+.bg-dark { background-color: var(--color-dark); }
+.bg-green { background-color: var(--color-green-bg); }
