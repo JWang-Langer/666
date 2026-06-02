@@ -1,234 +1,258 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import type { HeartFragment } from '../../utils/shatter';
 
 /* ================================================================
- * PHOTOREALISTIC HUMAN HEART - procedural Canvas 2D rendering
+ * PHOTOREALISTIC HUMAN HEART — click to shatter
  *
- * This renders an anatomically plausible human heart using:
- * - Bezier curves for the 4 chambers, great vessels, and pericardium
- * - Radial gradients simulating wet tissue, fat, and blood
- * - Vein/artery surface details rendered as stroke overlays
+ * Reference image style:
+ * - Deep black background with subtle red ambient glow
+ * - Wet, glossy surface with strong specular highlights
+ * - Dark crimson base (#1A0000 → #3D0000 → #8B0000 → #CC0000)
+ * - Bright white/pink wet reflections in upper-left quadrant
+ * - Sharp contrast between highlighted areas and shadow depths
  * ================================================================ */
 
-// Heart tissue palette - realistic deep reds, purples, blues from real anatomy
-const TISSUE = {
-  myocardium: ['#8B0000', '#A01010', '#6B0000', '#C02020', '#4A0000', '#901818'],
-  fat: ['#E8D5A0', '#D4C090', '#C8B878', '#E0CF95', '#DDC888'],
-  artery: ['#C04040', '#D06060', '#B03030', '#E08080'],
-  vein: ['#4040A0', '#5050B0', '#303080', '#6060C0'],
-  blood: ['#1A0000', '#2D0000', '#0A0000', '#3A0000', '#200000'],
-  pericardium: ['rgba(255,255,255,0.04)', 'rgba(255,255,255,0.02)'],
-  tearEdge: ['#FF3030', '#E02020', '#FF4848', '#CC1010', '#FF2020'],
-};
-
-function drawRealisticHeart(
+function drawPhotoHeart(
   ctx: CanvasRenderingContext2D,
   cx: number,
   cy: number,
   size: number,
   beat: number
 ) {
-  const s = size / 260; // scale factor (base unit 260px)
-  const pulse = 1 + Math.sin(beat * 0.025) * 0.035;
+  const s = size / 280;
+  const pulse = 1 + Math.sin(beat * 0.02) * 0.03;
 
-  ctx.save();
+  // === Deep background ambient glow ===
+  const ambientGlow = ctx.createRadialGradient(cx, cy, size * 0.15 * s, cx, cy, size * 1.2 * s);
+  ambientGlow.addColorStop(0, 'rgba(120,0,0,0.18)');
+  ambientGlow.addColorStop(0.6, 'rgba(60,0,0,0.06)');
+  ambientGlow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = ambientGlow;
+  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-  /* --- Pericardium (outer sac) --- */
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.scale(s * pulse, s * pulse * 0.95);
+  ctx.scale(s * pulse, s * pulse * 0.92);
+
+  // === Pericardial sac (faint outer membrane) ===
   ctx.beginPath();
-  ctx.moveTo(0, -150);
-  ctx.bezierCurveTo(70, -140, 110, -40, 100, 50);
-  ctx.bezierCurveTo(95, 110, 60, 160, 0, 170);
-  ctx.bezierCurveTo(-60, 160, -95, 110, -100, 50);
-  ctx.bezierCurveTo(-110, -40, -70, -140, 0, -150);
+  ctx.moveTo(0, -170);
+  ctx.bezierCurveTo(80, -160, 125, -50, 115, 55);
+  ctx.bezierCurveTo(105, 125, 70, 180, 0, 190);
+  ctx.bezierCurveTo(-70, 180, -105, 125, -115, 55);
+  ctx.bezierCurveTo(-125, -50, -80, -160, 0, -170);
   ctx.closePath();
-  ctx.fillStyle = 'rgba(5,0,0,0.3)';
+  ctx.fillStyle = 'rgba(8,0,0,0.5)';
   ctx.fill();
   ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 3;
   ctx.stroke();
-  ctx.restore();
 
-  /* === MAIN HEART BODY === */
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.scale(s * pulse, s * pulse * 0.95);
-
-  // Heart silhouette - human heart shape
+  // === Main heart silhouette ===
   ctx.beginPath();
-  // Apex (bottom point)
-  ctx.moveTo(0, 155);
+  ctx.moveTo(0, 170);
   // Right ventricle
-  ctx.bezierCurveTo(-25, 150, -55, 120, -70, 70);
-  ctx.bezierCurveTo(-85, 20, -60, -40, -35, -80);
+  ctx.bezierCurveTo(-30, 165, -65, 135, -80, 80);
+  ctx.bezierCurveTo(-95, 25, -65, -45, -38, -88);
   // Right atrium top
-  ctx.bezierCurveTo(-25, -105, -60, -115, -50, -135);
-  ctx.bezierCurveTo(-40, -150, -10, -155, 0, -160);
-  // Top - great vessels emerge
-  ctx.lineTo(0, -160);
-  ctx.bezierCurveTo(10, -155, 40, -150, 50, -135);
-  ctx.bezierCurveTo(60, -115, 25, -105, 35, -80);
+  ctx.bezierCurveTo(-28, -115, -65, -125, -55, -148);
+  ctx.bezierCurveTo(-45, -165, -12, -172, 0, -175);
+  // Top center (great vessel origin)
+  ctx.lineTo(0, -175);
+  ctx.bezierCurveTo(12, -172, 45, -165, 55, -148);
+  ctx.bezierCurveTo(65, -125, 28, -115, 38, -88);
   // Left ventricle
-  ctx.bezierCurveTo(60, -40, 85, 20, 70, 70);
-  ctx.bezierCurveTo(55, 120, 25, 150, 0, 155);
+  ctx.bezierCurveTo(65, -45, 95, 25, 80, 80);
+  ctx.bezierCurveTo(65, 135, 30, 165, 0, 170);
   ctx.closePath();
 
-  // Base myocardium gradient
-  const bodyGrad = ctx.createRadialGradient(-10, -20, 20, 5, 30, 160);
-  bodyGrad.addColorStop(0, '#C02828');
-  bodyGrad.addColorStop(0.15, '#A01818');
-  bodyGrad.addColorStop(0.35, '#8B0000');
-  bodyGrad.addColorStop(0.55, '#6B0000');
-  bodyGrad.addColorStop(0.75, '#4A0000');
-  bodyGrad.addColorStop(0.9, '#2D0000');
-  bodyGrad.addColorStop(1, '#150000');
-  ctx.fillStyle = bodyGrad;
+  // === Base gradient: deep crimson to black ===
+  const baseGrad = ctx.createRadialGradient(-15, -25, 30, 10, 35, 180);
+  baseGrad.addColorStop(0, '#CC2020');
+  baseGrad.addColorStop(0.12, '#A01010');
+  baseGrad.addColorStop(0.28, '#8B0000');
+  baseGrad.addColorStop(0.45, '#6B0000');
+  baseGrad.addColorStop(0.62, '#4A0000');
+  baseGrad.addColorStop(0.78, '#2D0000');
+  baseGrad.addColorStop(0.9, '#1A0000');
+  baseGrad.addColorStop(1, '#0A0000');
+  ctx.fillStyle = baseGrad;
   ctx.fill();
 
-  // Surface specular highlight (wet tissue shine)
-  const spec = ctx.createRadialGradient(-25, -45, 5, -5, 10, 120);
-  spec.addColorStop(0, 'rgba(255,255,255,0.12)');
-  spec.addColorStop(0.2, 'rgba(255,220,220,0.06)');
-  spec.addColorStop(0.5, 'rgba(255,180,180,0.03)');
-  spec.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = spec;
+  // === Strong specular wet reflection (upper-left) ===
+  // This creates the glossy "wet organ" look from the reference
+  const spec1 = ctx.createRadialGradient(-35, -60, 8, -15, -15, 140);
+  spec1.addColorStop(0, 'rgba(255,255,255,0.18)');
+  spec1.addColorStop(0.08, 'rgba(255,240,240,0.12)');
+  spec1.addColorStop(0.2, 'rgba(255,200,200,0.06)');
+  spec1.addColorStop(0.4, 'rgba(255,180,180,0.03)');
+  spec1.addColorStop(0.7, 'rgba(255,150,150,0.01)');
+  spec1.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = spec1;
+  ctx.fill();
+
+  // === Secondary specular (small bright spot) ===
+  const spec2 = ctx.createRadialGradient(-40, -50, 3, -35, -45, 50);
+  spec2.addColorStop(0, 'rgba(255,255,255,0.22)');
+  spec2.addColorStop(0.15, 'rgba(255,240,240,0.1)');
+  spec2.addColorStop(0.5, 'rgba(255,200,200,0.03)');
+  spec2.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = spec2;
+  ctx.fill();
+
+  // === Right-side deep shadow ===
+  const shadowR = ctx.createRadialGradient(45, 20, 20, 30, 25, 160);
+  shadowR.addColorStop(0, 'rgba(0,0,0,0.25)');
+  shadowR.addColorStop(0.5, 'rgba(0,0,0,0.15)');
+  shadowR.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = shadowR;
+  ctx.fill();
+
+  // === Bottom shadow ===
+  const shadowB = ctx.createRadialGradient(0, 100, 10, 0, 110, 80);
+  shadowB.addColorStop(0, 'rgba(0,0,0,0.4)');
+  shadowB.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = shadowB;
   ctx.fill();
 
   ctx.restore();
 
-  /* --- Great Vessels (aorta, pulmonary artery, SVC) --- */
+  // === Great vessels (aorta, pulmonary) ===
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.scale(s * pulse, s * pulse * 0.95);
+  ctx.scale(s * pulse, s * pulse * 0.92);
 
-  // Aorta - thick, emerging from top center, curving right
+  // Aorta - thick, right-curving
   ctx.beginPath();
-  ctx.moveTo(-5, -155);
-  ctx.bezierCurveTo(-5, -180, 30, -190, 50, -175);
-  ctx.bezierCurveTo(65, -162, 55, -145, 40, -140);
-  ctx.bezierCurveTo(25, -138, 5, -145, 0, -155);
+  ctx.moveTo(-8, -168);
+  ctx.bezierCurveTo(-8, -195, 35, -205, 58, -188);
+  ctx.bezierCurveTo(72, -175, 60, -155, 42, -150);
+  ctx.bezierCurveTo(28, -147, 5, -158, -8, -168);
   ctx.closePath();
-  const aortaGrad = ctx.createLinearGradient(-5, -190, 50, -140);
-  aortaGrad.addColorStop(0, '#D04040');
-  aortaGrad.addColorStop(0.4, '#C03030');
-  aortaGrad.addColorStop(1, '#901818');
+  const aortaGrad = ctx.createLinearGradient(-8, -200, 60, -155);
+  aortaGrad.addColorStop(0, '#E84848');
+  aortaGrad.addColorStop(0.3, '#CC3030');
+  aortaGrad.addColorStop(0.7, '#A02020');
+  aortaGrad.addColorStop(1, '#6B1010');
   ctx.fillStyle = aortaGrad;
   ctx.fill();
-  ctx.strokeStyle = 'rgba(255,200,200,0.12)';
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(255,180,180,0.15)';
+  ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  // Pulmonary artery - left side, thinner
+  // Pulmonary artery - left side
   ctx.beginPath();
-  ctx.moveTo(5, -150);
-  ctx.bezierCurveTo(10, -175, -20, -185, -40, -170);
-  ctx.bezierCurveTo(-50, -162, -35, -148, -15, -145);
-  ctx.bezierCurveTo(0, -143, 3, -148, 5, -150);
+  ctx.moveTo(8, -162);
+  ctx.bezierCurveTo(12, -190, -25, -198, -48, -182);
+  ctx.bezierCurveTo(-58, -173, -42, -157, -20, -153);
+  ctx.bezierCurveTo(-2, -150, 5, -158, 8, -162);
   ctx.closePath();
-  const paGrad = ctx.createLinearGradient(5, -185, -40, -148);
-  paGrad.addColorStop(0, '#C84848');
+  const paGrad = ctx.createLinearGradient(8, -195, -50, -155);
+  paGrad.addColorStop(0, '#E05050');
   paGrad.addColorStop(1, '#8B2020');
   ctx.fillStyle = paGrad;
   ctx.fill();
 
   ctx.restore();
 
-  /* --- Coronary arteries (surface) --- */
+  // === Coronary arteries (surface) ===
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.scale(s * pulse, s * pulse * 0.95);
+  ctx.scale(s * pulse, s * pulse * 0.92);
 
-  const drawCoronary = (points: [number, number][], color: string, width: number) => {
-    ctx.beginPath();
-    ctx.moveTo(points[0][0], points[0][1]);
-    for (let i = 1; i < points.length - 2; i += 3) {
-      ctx.bezierCurveTo(
-        points[i][0], points[i][1],
-        points[i + 1][0], points[i + 1][1],
-        points[i + 2][0], points[i + 2][1]
-      );
-    }
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width;
-    ctx.stroke();
-  };
-
-  // LAD (left anterior descending)
-  const lad: [number, number][] = [
-    [0, -125], [-8, -80], [-15, -50], [-25, -10],
-    [-20, 30], [-10, 70], [-2, 100], [1, 130]
+  // LAD - left anterior descending (multi-pass for depth)
+  const ladPts: [number, number][] = [
+    [2, -130], [-6, -85], [-18, -50], [-28, -10],
+    [-22, 35], [-12, 75], [-4, 110], [2, 140]
   ];
   for (let pass = 0; pass < 3; pass++) {
-    drawCoronary(
-      lad.map(([x, y]) => [x + (Math.random() - 0.5) * 3, y + (Math.random() - 0.5) * 3] as [number, number]),
-      pass === 0 ? 'rgba(200,40,40,0.6)' : pass === 1 ? 'rgba(255,100,100,0.25)' : 'rgba(100,0,0,0.4)',
-      3 - pass * 1.2
-    );
+    ctx.beginPath();
+    ctx.moveTo(ladPts[0][0], ladPts[0][1]);
+    for (let i = 1; i < ladPts.length; i++) {
+      const mx = (ladPts[i - 1][0] + ladPts[i][0]) / 2 + Math.sin(i * 2) * 4;
+      const my = (ladPts[i - 1][1] + ladPts[i][1]) / 2 + Math.cos(i * 3) * 3;
+      ctx.quadraticCurveTo(mx, my, ladPts[i][0], ladPts[i][1]);
+    }
+    ctx.strokeStyle = pass === 0
+      ? 'rgba(180,30,30,0.65)'
+      : pass === 1
+        ? 'rgba(255,100,100,0.2)'
+        : 'rgba(80,0,0,0.45)';
+    ctx.lineWidth = 3.5 - pass * 1.3;
+    ctx.stroke();
   }
 
-  // RCA (right coronary artery)
-  const rca: [number, number][] = [
-    [10, -120], [25, -70], [35, -20], [40, 30], [30, 70], [15, 110]
+  // RCA - right coronary
+  const rcaPts: [number, number][] = [
+    [15, -125], [30, -75], [42, -25], [48, 30], [35, 75], [18, 120]
   ];
-  drawCoronary(rca, 'rgba(180,30,30,0.55)', 2.2);
-  drawCoronary(rca.map(([x, y]) => [x - 1, y - 1] as [number, number]), 'rgba(255,120,120,0.2)', 1);
+  ctx.beginPath();
+  rcaPts.forEach((p, i) => {
+    if (i === 0) ctx.moveTo(p[0], p[1]);
+    else ctx.quadraticCurveTo(
+      (rcaPts[i - 1][0] + p[0]) / 2 - 3,
+      (rcaPts[i - 1][1] + p[1]) / 2 + 2,
+      p[0], p[1]
+    );
+  });
+  ctx.strokeStyle = 'rgba(160,25,25,0.6)';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
 
   ctx.restore();
 
-  /* --- Surface veins (dark blue-purple) --- */
+  // === Surface veins (purple-blue) ===
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.scale(s * pulse, s * pulse * 0.95);
+  ctx.scale(s * pulse, s * pulse * 0.92);
 
   const veinPaths: [number, number][][] = [
-    [[-30, -60], [-50, -20], [-60, 20], [-55, 60], [-40, 100]],
-    [[30, -50], [50, -10], [55, 30], [45, 70], [30, 105]],
-    [[-15, -80], [-25, -40], [-35, 0], [-30, 40]],
-    [[15, -70], [20, -35], [25, 5], [20, 45]],
+    [[-35, -60], [-55, -15], [-65, 25], [-60, 65], [-45, 105]],
+    [[35, -50], [55, -5], [60, 35], [48, 75], [32, 110]],
+    [[-18, -80], [-30, -35], [-40, 5], [-35, 45]],
+    [[20, -72], [25, -30], [30, 10], [22, 50]],
   ];
 
   veinPaths.forEach((pts) => {
     ctx.beginPath();
     ctx.moveTo(pts[0][0], pts[0][1]);
-    for (let i = 1; i < pts.length - 2; i += 3) {
-      const cp1 = pts[i] || pts[i - 1];
-      const cp2 = pts[i + 1] || pts[i];
-      const end = pts[i + 2] || pts[pts.length - 1];
-      ctx.bezierCurveTo(cp1[0], cp1[1], cp2[0], cp2[1], end[0], end[1]);
+    for (let i = 1; i < pts.length; i++) {
+      const mx = (pts[i - 1][0] + pts[i][0]) / 2;
+      const my = (pts[i - 1][1] + pts[i][1]) / 2;
+      ctx.quadraticCurveTo(mx, my, pts[i][0], pts[i][1]);
     }
-    ctx.strokeStyle = 'rgba(60,40,120,0.45)';
-    ctx.lineWidth = 1.8;
+    ctx.strokeStyle = 'rgba(55,35,110,0.5)';
+    ctx.lineWidth = 2;
     ctx.stroke();
-    // Highlight
+
+    // Subtle vein highlight
     ctx.beginPath();
-    ctx.moveTo(pts[0][0] + 1, pts[0][1]);
-    for (let i = 1; i < pts.length - 2; i += 3) {
-      const cp1 = pts[i] || pts[i - 1];
-      const cp2 = pts[i + 1] || pts[i];
-      const end = pts[i + 2] || pts[pts.length - 1];
-      ctx.bezierCurveTo(cp1[0] + 1, cp1[1], cp2[0] + 1, cp2[1], end[0] + 1, end[1]);
+    ctx.moveTo(pts[0][0] + 1.5, pts[0][1]);
+    for (let i = 1; i < pts.length; i++) {
+      const mx = (pts[i - 1][0] + pts[i][0]) / 2 + 1.5;
+      const my = (pts[i - 1][1] + pts[i][1]) / 2;
+      ctx.quadraticCurveTo(mx, my, pts[i][0] + 1.5, pts[i][1]);
     }
-    ctx.strokeStyle = 'rgba(120,100,180,0.2)';
-    ctx.lineWidth = 0.6;
+    ctx.strokeStyle = 'rgba(130,110,190,0.18)';
+    ctx.lineWidth = 0.8;
     ctx.stroke();
   });
 
   ctx.restore();
 
-  /* --- Fat deposits (yellowish patches on surface) --- */
+  // === Fat deposits ===
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.scale(s * pulse, s * pulse * 0.95);
+  ctx.scale(s * pulse, s * pulse * 0.92);
 
-  const fatPatches: { cx: number; cy: number; rx: number; ry: number; angle: number }[] = [
-    { cx: -40, cy: 60, rx: 18, ry: 10, angle: -0.3 },
-    { cx: 35, cy: -30, rx: 14, ry: 8, angle: 0.2 },
-    { cx: 0, cy: -100, rx: 12, ry: 7, angle: 0 },
-    { cx: -20, cy: 40, rx: 10, ry: 6, angle: -0.5 },
-    { cx: 25, cy: 80, rx: 11, ry: 7, angle: 0.4 },
+  const fatPatches = [
+    { cx: -48, cy: 55, rx: 22, ry: 12, angle: -0.35 },
+    { cx: 42, cy: -35, rx: 16, ry: 10, angle: 0.25 },
+    { cx: -5, cy: -105, rx: 14, ry: 8, angle: 0.05 },
+    { cx: -22, cy: 35, rx: 12, ry: 7, angle: -0.5 },
+    { cx: 30, cy: 75, rx: 13, ry: 8, angle: 0.4 },
+    { cx: -25, cy: 15, rx: 10, ry: 6, angle: -0.2 },
   ];
 
   fatPatches.forEach((p) => {
@@ -237,46 +261,48 @@ function drawRealisticHeart(
     ctx.rotate(p.angle);
     ctx.beginPath();
     ctx.ellipse(0, 0, p.rx, p.ry, 0, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(210,190,140,0.25)';
+    const fatGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.max(p.rx, p.ry));
+    fatGrad.addColorStop(0, 'rgba(230,215,165,0.3)');
+    fatGrad.addColorStop(0.6, 'rgba(210,190,140,0.15)');
+    fatGrad.addColorStop(1, 'rgba(180,160,110,0)');
+    ctx.fillStyle = fatGrad;
     ctx.fill();
     ctx.restore();
   });
 
   ctx.restore();
 
-  /* --- Overall wet-tissue specular sheen --- */
+  // === Final wet gloss overlay ===
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.scale(s * pulse, s * pulse * 0.95);
+  ctx.scale(s * pulse, s * pulse * 0.92);
 
   ctx.beginPath();
-  ctx.moveTo(0, 155);
-  ctx.bezierCurveTo(-25, 150, -55, 120, -70, 70);
-  ctx.bezierCurveTo(-85, 20, -60, -40, -35, -80);
-  ctx.bezierCurveTo(-25, -105, -60, -115, -50, -135);
-  ctx.bezierCurveTo(-40, -150, -10, -155, 0, -160);
-  ctx.lineTo(0, -160);
-  ctx.bezierCurveTo(10, -155, 40, -150, 50, -135);
-  ctx.bezierCurveTo(60, -115, 25, -105, 35, -80);
-  ctx.bezierCurveTo(60, -40, 85, 20, 70, 70);
-  ctx.bezierCurveTo(55, 120, 25, 150, 0, 155);
+  ctx.moveTo(0, 170);
+  ctx.bezierCurveTo(-30, 165, -65, 135, -80, 80);
+  ctx.bezierCurveTo(-95, 25, -65, -45, -38, -88);
+  ctx.bezierCurveTo(-28, -115, -65, -125, -55, -148);
+  ctx.bezierCurveTo(-45, -165, -12, -172, 0, -175);
+  ctx.lineTo(0, -175);
+  ctx.bezierCurveTo(12, -172, 45, -165, 55, -148);
+  ctx.bezierCurveTo(65, -125, 28, -115, 38, -88);
+  ctx.bezierCurveTo(65, -45, 95, 25, 80, 80);
+  ctx.bezierCurveTo(65, 135, 30, 165, 0, 170);
   ctx.closePath();
 
-  // Second specular pass for wetness
-  const wetSpec = ctx.createRadialGradient(-20, -35, 10, 0, 20, 150);
-  wetSpec.addColorStop(0, 'rgba(255,255,255,0.08)');
-  wetSpec.addColorStop(0.3, 'rgba(255,230,230,0.04)');
-  wetSpec.addColorStop(0.7, 'rgba(255,200,200,0.01)');
-  wetSpec.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = wetSpec;
+  // Final glossy layer
+  const finalGloss = ctx.createRadialGradient(-30, -55, 5, -10, -15, 160);
+  finalGloss.addColorStop(0, 'rgba(255,255,255,0.08)');
+  finalGloss.addColorStop(0.15, 'rgba(255,230,230,0.04)');
+  finalGloss.addColorStop(0.4, 'rgba(255,200,200,0.02)');
+  finalGloss.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = finalGloss;
   ctx.fill();
 
   ctx.restore();
-
-  ctx.restore(); // end main ctx.save()
 }
 
-/* ---- Fragment generation ---- */
+// === Fragment generation with clipping ===
 function generateHeartFragments(
   cx: number,
   cy: number,
@@ -284,50 +310,43 @@ function generateHeartFragments(
   count: number
 ): HeartFragment[] {
   const frags: HeartFragment[] = [];
-  const s = size / 260;
+  const s = size / 280;
 
   for (let i = 0; i < count; i++) {
     const angle = Math.random() * Math.PI * 2;
-    const dist = Math.random() * size * 0.75 * s;
-    const ox = cx + Math.cos(angle) * dist * 0.9;
-    const oy = cy + Math.sin(angle) * dist * 0.85;
+    const dist = Math.random() * size * 0.7 * s;
+    const ox = cx + Math.cos(angle) * dist * 0.85;
+    const oy = cy + Math.sin(angle) * dist * 0.8;
 
-    const speed = 0.2 + Math.random() * 1.8;
-    const fragSize = 3 + Math.random() * 14;
+    const speed = 0.25 + Math.random() * 1.6;
+    const fragSize = 3 + Math.random() * 15;
 
-    // Generate clip polygon (irregular)
-    const numVertices = 4 + Math.floor(Math.random() * 4);
+    const numVertices = 5 + Math.floor(Math.random() * 5);
     const clipPoints: { x: number; y: number }[] = [];
     for (let v = 0; v < numVertices; v++) {
       const va = (v / numVertices) * Math.PI * 2;
-      const r = fragSize * (0.5 + Math.random() * 0.5);
-      clipPoints.push({
-        x: Math.cos(va) * r,
-        y: Math.sin(va) * r,
-      });
+      const r = fragSize * (0.4 + Math.random() * 0.6);
+      clipPoints.push({ x: Math.cos(va) * r, y: Math.sin(va) * r });
     }
 
-    // Colors: mix of tissue, artery wall, fat, blood
-    const allColors = [
-      ...TISSUE.myocardium,
-      ...TISSUE.tearEdge,
-      ...TISSUE.blood,
+    const tissueColors = [
+      '#CC2020', '#8B0000', '#4A0000', '#A01010',
+      '#6B0000', '#E04040', '#2D0000', '#FF4848',
       '#901010', '#701010', '#B02020', '#5A0000',
+      '#3D0000', '#C03030', '#1A0000',
     ];
 
     frags.push({
-      x: ox,
-      y: oy,
-      vx: (Math.random() - 0.5) * speed * 2.5,
-      vy: (Math.random() - 0.7) * speed * 2 - 0.5,
-      origX: ox,
-      origY: oy,
+      x: ox, y: oy,
+      vx: (Math.random() - 0.5) * speed * 2.8,
+      vy: (Math.random() - 0.65) * speed * 2.2 - 0.4,
+      origX: ox, origY: oy,
       size: fragSize,
       rotation: Math.random() * Math.PI * 2,
-      rotSpeed: (Math.random() - 0.5) * 0.1,
+      rotSpeed: (Math.random() - 0.5) * 0.12,
       opacity: 0.6 + Math.random() * 0.4,
-      color: allColors[Math.floor(Math.random() * allColors.length)],
-      delay: Math.random() * 0.6,
+      color: tissueColors[Math.floor(Math.random() * tissueColors.length)],
+      delay: Math.random() * 0.5,
       clipPoints,
     });
   }
@@ -343,30 +362,24 @@ export function ShatterSection() {
   const heartImgRef = useRef<ImageData | null>(null);
   const fragmentsRef = useRef<HeartFragment[]>([]);
   const animFrameRef = useRef<number>(0);
-  const stateRef = useRef<{
-    phase: 'intact' | 'cracking' | 'exploding' | 'gone';
-    progress: number;
-  }>({ phase: 'intact', progress: 0 });
+  const clickTimeRef = useRef<number>(0);
+  const isIntactRef = useRef<boolean>(true);
 
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ['start start', 'end end'],
   });
 
-  const overlayOpacity = useTransform(scrollYProgress, [0.5, 0.88], [0, 1]);
-  const canvasScale = useTransform(scrollYProgress, [0, 0.45], [1, 0.8]);
+  const overlayOpacity = useTransform(scrollYProgress, [0.15, 0.4], [0, 1]);
+  const canvasScale = useTransform(scrollYProgress, [0, 0.3], [1, 0.88]);
+  const hintOpacity = useTransform(scrollYProgress, [0, 0.06], [1, 0]);
 
-  useEffect(() => {
-    const unsub = scrollYProgress.on('change', (v) => {
-      const s = stateRef.current;
-      if (v < 0.18) s.phase = 'intact';
-      else if (v < 0.42) s.phase = 'cracking';
-      else if (v < 0.82) s.phase = 'exploding';
-      else s.phase = 'gone';
-      s.progress = v;
-    });
-    return unsub;
-  }, [scrollYProgress]);
+  const handleClick = useCallback(() => {
+    if (isIntactRef.current) {
+      isIntactRef.current = false;
+      clickTimeRef.current = performance.now();
+    }
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -387,17 +400,17 @@ export function ShatterSection() {
     const h = canvas.offsetHeight;
     const cx = w / 2;
     const cy = h / 2;
-    const heartSize = Math.min(w, h) * 0.42;
-    const fragCount = 180;
+    const heartSize = Math.min(w, h) * 0.44;
+    const fragCount = 200;
 
-    // Render heart to offscreen canvas once for capture
+    // Pre-render intact heart to offscreen
     const offCanvas = document.createElement('canvas');
     offCanvas.width = w * dpr;
     offCanvas.height = h * dpr;
     const offCtx = offCanvas.getContext('2d');
     if (offCtx) {
       offCtx.scale(dpr, dpr);
-      drawRealisticHeart(offCtx, cx, cy, heartSize, 0);
+      drawPhotoHeart(offCtx, cx, cy, heartSize, 0);
       heartImgRef.current = offCtx.getImageData(0, 0, w * dpr, h * dpr);
     }
 
@@ -405,63 +418,60 @@ export function ShatterSection() {
       fragmentsRef.current = generateHeartFragments(cx, cy, heartSize, fragCount);
     }
 
-    /* === Crack generation (deterministic per-frame) === */
-    function drawRealisticCracks(
+    function drawCracks(
       ctx: CanvasRenderingContext2D,
-      progress: number,
+      elapsed: number, // ms since click
       beat: number
     ) {
-      const numCracks = Math.floor(progress * 30);
-      const s = heartSize / 260;
+      const progress = Math.min(1, elapsed / 800); // cracks form over 800ms
+      const numCracks = Math.floor(progress * 28);
+      const scale = heartSize / 280;
 
       for (let i = 0; i < numCracks; i++) {
-        const seed = i * 13.391;
-        const a1 = (seed * 17.3) % (Math.PI * 2);
-        const len = heartSize * (0.15 + (seed % 0.45)) * s;
-        const a2 = a1 + ((seed * 5.7) % 0.9 - 0.45);
-        const rStart = heartSize * (0.03 + (seed % 0.15)) * s;
+        const seed = i * 17.391;
+        const a1 = (seed * 19.3) % (Math.PI * 2);
+        const len = heartSize * (0.12 + (seed % 0.5)) * scale;
+        const a2 = a1 + ((seed * 7.1) % 1.0 - 0.5);
+        const rStart = heartSize * (0.02 + (seed % 0.18)) * scale;
         const x1 = cx + Math.cos(a1) * rStart;
-        const y1 = cy + Math.sin(a1) * rStart * 0.9;
+        const y1 = cy + Math.sin(a1) * rStart * 0.85;
         const x2 = x1 + Math.cos(a2) * len;
-        const y2 = y1 + Math.sin(a2) * len * 0.9;
+        const y2 = y1 + Math.sin(a2) * len * 0.85;
 
-        // Main crack (dark)
         ctx.beginPath();
         ctx.moveTo(x1, y1);
-        const mx = (x1 + x2) / 2 + Math.sin(seed * 11 + beat * 0.015) * heartSize * 0.04 * s;
-        const my = (y1 + y2) / 2 + Math.cos(seed * 13 + beat * 0.015) * heartSize * 0.04 * s;
+        const mx = (x1 + x2) / 2 + Math.sin(seed * 13 + beat * 0.02) * heartSize * 0.03 * scale;
+        const my = (y1 + y2) / 2 + Math.cos(seed * 15 + beat * 0.02) * heartSize * 0.03 * scale;
         ctx.quadraticCurveTo(mx, my, x2, y2);
-        ctx.strokeStyle = `rgba(0,0,0,${0.55 + progress * 0.3})`;
-        ctx.lineWidth = 1.2 + progress * 2.5;
-        ctx.shadowColor = 'rgba(0,0,0,0.6)';
+        ctx.strokeStyle = `rgba(0,0,0,${0.5 + progress * 0.35})`;
+        ctx.lineWidth = 1 + progress * 3;
+        ctx.shadowColor = 'rgba(0,0,0,0.7)';
         ctx.shadowBlur = 2;
         ctx.stroke();
         ctx.shadowBlur = 0;
 
-        // Red glow along crack (fresh tear)
+        // Red glow along crack
         ctx.beginPath();
         ctx.moveTo(x1 + 1, y1 + 1);
         ctx.quadraticCurveTo(mx + 1, my + 1, x2 + 1, y2 + 1);
-        ctx.strokeStyle = `rgba(255,40,40,${0.25 + progress * 0.35})`;
-        ctx.lineWidth = 0.6 + progress * 1;
+        ctx.strokeStyle = `rgba(255,30,30,${0.2 + progress * 0.4})`;
+        ctx.lineWidth = 0.5 + progress * 1.2;
         ctx.stroke();
 
-        // Small branch cracks
-        if (i % 3 === 0) {
-          const bx = x1 + (x2 - x1) * 0.4;
-          const by = y1 + (y2 - y1) * 0.4;
-          const blen = len * 0.3;
-          const ba = a2 + (seed % 0.8 - 0.4);
+        // Branch cracks (every 4th)
+        if (i % 4 === 0) {
+          const bx = x1 + (x2 - x1) * 0.35;
+          const by = y1 + (y2 - y1) * 0.35;
+          const blen = len * 0.28;
+          const ba = a2 + (seed % 0.9 - 0.45);
           ctx.beginPath();
           ctx.moveTo(bx, by);
           ctx.quadraticCurveTo(
-            bx + Math.cos(ba) * blen * 0.5,
-            by + Math.sin(ba) * blen * 0.5,
-            bx + Math.cos(ba) * blen,
-            by + Math.sin(ba) * blen
+            bx + Math.cos(ba) * blen * 0.5, by + Math.sin(ba) * blen * 0.5,
+            bx + Math.cos(ba) * blen, by + Math.sin(ba) * blen
           );
-          ctx.strokeStyle = `rgba(0,0,0,${0.4 + progress * 0.3})`;
-          ctx.lineWidth = 0.8;
+          ctx.strokeStyle = `rgba(0,0,0,${0.35 + progress * 0.3})`;
+          ctx.lineWidth = 0.7;
           ctx.stroke();
         }
       }
@@ -469,68 +479,73 @@ export function ShatterSection() {
 
     function render(time: number) {
       if (!ctx || !canvas) return;
-      const s = stateRef.current;
+      const clicked = !isIntactRef.current;
+      const elapsed = clicked ? time - clickTimeRef.current : 0;
+      // Phase: 0-800ms cracks, 800-2500ms explode, 2500+ gone
+      const phase = !clicked ? 'intact'
+        : elapsed < 800 ? 'cracking'
+        : elapsed < 2500 ? 'exploding'
+        : 'gone';
+      const expProgress = phase === 'exploding'
+        ? Math.max(0, Math.min(1, (elapsed - 800) / 1700))
+        : phase === 'gone' ? 1 : 0;
+      const crackProgress = phase === 'cracking' ? Math.min(1, elapsed / 800) : 0;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      void crackProgress;
 
       ctx.save();
       ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, w, h);
 
-      // Deep background with red ambient
-      const bgGrad = ctx.createRadialGradient(cx, cy, heartSize * 0.1, cx, cy, Math.max(w, h) * 0.7);
-      bgGrad.addColorStop(0, 'rgba(80,0,0,0.25)');
-      bgGrad.addColorStop(0.5, 'rgba(40,0,0,0.1)');
+      // Background glow
+      const bgGrad = ctx.createRadialGradient(cx, cy, heartSize * 0.08, cx, cy, Math.max(w, h) * 0.7);
+      bgGrad.addColorStop(0, 'rgba(80,0,0,0.2)');
+      bgGrad.addColorStop(0.5, 'rgba(40,0,0,0.08)');
       bgGrad.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = bgGrad;
       ctx.fillRect(0, 0, w, h);
 
-      const expProgress = Math.max(0, Math.min(1, (s.progress - 0.38) / 0.44));
-
-      /* ---- INTACT / CRACKING phase ---- */
-      if (s.phase === 'intact' || s.phase === 'cracking') {
-        // Redraw heart from captured image for crispness
+      if (phase === 'intact' || phase === 'cracking') {
         if (heartImgRef.current) {
           ctx.putImageData(heartImgRef.current, 0, 0);
         } else {
-          drawRealisticHeart(ctx, cx, cy, heartSize, time);
+          drawPhotoHeart(ctx, cx, cy, heartSize, time);
         }
 
-        if (s.phase === 'cracking') {
-          const crackPct = Math.min(1, (s.progress - 0.18) / 0.24);
-          drawRealisticCracks(ctx, crackPct, time);
+        if (phase === 'cracking') {
+          drawCracks(ctx, elapsed, time);
         }
       }
 
-      /* ---- EXPLODING phase ---- */
-      if (s.phase === 'exploding' || s.phase === 'gone') {
+      if (phase === 'exploding' || phase === 'gone') {
         const frags = fragmentsRef.current;
 
-        // Show fading heart in early explosion
-        if (expProgress < 0.35) {
-          ctx.globalAlpha = 1 - expProgress / 0.35;
+        // Fading intact heart early
+        if (expProgress < 0.3) {
+          ctx.globalAlpha = 1 - expProgress / 0.3;
           if (heartImgRef.current) {
             ctx.putImageData(heartImgRef.current, 0, 0);
           } else {
-            drawRealisticHeart(ctx, cx, cy, heartSize, time);
+            drawPhotoHeart(ctx, cx, cy, heartSize, time);
           }
           ctx.globalAlpha = 1;
         }
 
-        // Draw fragments with clipping from heart image
         frags.forEach((f) => {
-          const fragPct = Math.max(0, Math.min(1, (expProgress - f.delay) / 0.55));
-          if (fragPct <= 0) return;
+          const fp = Math.max(0, Math.min(1, (expProgress - f.delay) / 0.5));
+          if (fp <= 0) return;
 
-          const fx = f.origX + f.vx * fragPct * heartSize;
-          const fy = f.origY + f.vy * fragPct * heartSize + fragPct * fragPct * 40; // gravity
-          const fRot = f.rotation + f.rotSpeed * fragPct * 15;
-          const fAlpha = f.opacity * (1 - fragPct * 0.85);
+          // Gravity + parabolic arc
+          const fx = f.origX + f.vx * fp * heartSize;
+          const fy = f.origY + f.vy * fp * heartSize + fp * fp * 50;
+          const fRot = f.rotation + f.rotSpeed * fp * 18;
+          const fAlpha = f.opacity * (1 - fp * 0.9);
 
           ctx.save();
           ctx.translate(fx, fy);
           ctx.rotate(fRot);
           ctx.globalAlpha = fAlpha;
 
-          // Draw fragment as irregular polygon with tissue color
           ctx.beginPath();
           const pts = f.clipPoints;
           if (pts.length > 0) {
@@ -538,39 +553,28 @@ export function ShatterSection() {
             for (let p = 1; p < pts.length; p++) {
               ctx.lineTo(pts[p].x, pts[p].y);
             }
-          } else {
-            // Fallback irregular
-            const sz = f.size;
-            ctx.moveTo(-sz * 0.6, -sz * 0.8);
-            ctx.lineTo(sz * 0.8, -sz * 0.3);
-            ctx.lineTo(sz * 0.6, sz * 0.7);
-            ctx.lineTo(-sz * 0.5, sz * 0.7);
-            ctx.lineTo(-sz * 0.8, sz * 0.1);
           }
           ctx.closePath();
           ctx.fillStyle = f.color;
           ctx.fill();
-
-          // Fragment edge highlight
-          ctx.strokeStyle = `rgba(255,255,255,${0.06 * fAlpha})`;
+          ctx.strokeStyle = `rgba(255,255,255,${0.05 * fAlpha})`;
           ctx.lineWidth = 0.5;
           ctx.stroke();
-
           ctx.restore();
         });
 
-        // Blood spray particles
-        if (expProgress > 0.2) {
-          for (let d = 0; d < 50; d++) {
-            const dp = Math.max(0, (expProgress - 0.2 - d * 0.012) / 0.5);
+        // Blood spray
+        if (expProgress > 0.15) {
+          for (let d = 0; d < 60; d++) {
+            const dp = Math.max(0, (expProgress - 0.15 - d * 0.01) / 0.55);
             if (dp <= 0 || dp > 1) continue;
             const da = (d * 2.713) % (Math.PI * 2);
-            const dd = heartSize * (0.1 + dp * 1.2);
+            const dd = heartSize * (0.08 + dp * 1.5);
             const dx = cx + Math.cos(da) * dd;
-            const dy = cy + Math.sin(da) * dd * 0.8;
+            const dy = cy + Math.sin(da) * dd * 0.75;
             ctx.beginPath();
-            ctx.arc(dx, dy, 0.8 + (1 - dp) * 2.5, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(200,0,0,${(1 - dp) * 0.5})`;
+            ctx.arc(dx, dy, 0.6 + (1 - dp) * 2.8, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(200,0,0,${(1 - dp) * 0.55})`;
             ctx.fill();
           }
         }
@@ -593,7 +597,7 @@ export function ShatterSection() {
       ref={ref}
       id="scene-shatter"
       style={{
-        height: '200vh',
+        height: '130vh',
         position: 'relative',
         background: 'var(--color-near-black)',
         overflow: 'hidden',
@@ -609,8 +613,10 @@ export function ShatterSection() {
           justifyContent: 'center',
           overflow: 'hidden',
           background:
-            'radial-gradient(ellipse at center, rgba(180,0,0,0.06) 0%, rgba(0,0,0,0) 55%)',
+            'radial-gradient(ellipse at center, rgba(140,0,0,0.05) 0%, rgba(0,0,0,0) 55%)',
+          cursor: 'pointer',
         }}
+        onClick={handleClick}
       >
         <motion.canvas
           ref={canvasRef}
@@ -620,6 +626,28 @@ export function ShatterSection() {
             scale: canvasScale,
           }}
         />
+
+        {/* Click hint */}
+        <motion.div
+          style={{
+            position: 'absolute',
+            bottom: 'clamp(10%, 15vh, 20%)',
+            opacity: hintOpacity,
+            textAlign: 'center',
+            pointerEvents: 'none',
+          }}
+        >
+          <p
+            style={{
+              fontSize: 'clamp(0.7rem, 1vw, 0.8rem)',
+              color: 'var(--color-cream)',
+              letterSpacing: '0.2em',
+              opacity: 0.4,
+            }}
+          >
+            点击心脏 · 击碎它
+          </p>
+        </motion.div>
 
         <motion.div
           style={{
@@ -631,7 +659,7 @@ export function ShatterSection() {
             justifyContent: 'center',
             opacity: overlayOpacity,
             background:
-              'radial-gradient(ellipse at center, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.95) 100%)',
+              'radial-gradient(ellipse at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.95) 100%)',
             pointerEvents: 'none',
           }}
         >
@@ -640,7 +668,7 @@ export function ShatterSection() {
             data-glitch="还剩什么"
             style={{
               textAlign: 'center',
-              textShadow: '0 0 40px rgba(255,211,0,0.15)',
+              textShadow: '0 0 40px rgba(245,200,0,0.15)',
             }}
           >
             还剩什么
