@@ -59,7 +59,8 @@ export function SurfaceSection() {
           display: 'grid',
           placeItems: 'center',
           overflow: 'hidden',
-          background: 'radial-gradient(ellipse at center, rgba(44,85,89,0.04) 0%, transparent 70%)',
+          background:
+            'radial-gradient(ellipse at center, rgba(44,85,89,0.04) 0%, transparent 70%)',
         }}
       >
         <div

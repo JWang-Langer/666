@@ -12,22 +12,46 @@ interface PeelCardProps {
 }
 
 export function PeelCard({ index, total, config, scrollYProgress }: PeelCardProps) {
-  const start = (index / total) * 0.65;
-  const end = Math.min(1, ((index + 1) / total) * 0.65 + 0.12);
+  // 300vh total. 4 cards. Each card gets 25% of the progress range.
+  // Card i is the "top visible card" from i*25% to (i+1)*25%.
+  // It peels away by the end of its section, revealing card i+1 beneath.
+  const sectionSize = 1 / total;
+  const sectionStart = index * sectionSize;           // card becomes top
+  const peelStart = sectionStart + sectionSize * 0.5;  // start peeling halfway through
+  const peelEnd = sectionStart + sectionSize * 0.9;    // fully peeled by 90%
 
-  const scale = useTransform(scrollYProgress, [start, end], [1, 0.82]);
-  const y = useTransform(scrollYProgress, [start, end], ['0vh', '-18vh']);
-  const rotateZ = useTransform(scrollYProgress, [start, end], [0, index % 2 === 0 ? -5 : 5]);
-  const opacity = useTransform(scrollYProgress, [start, end], [1, 0.25]);
-  const brightness = useTransform(scrollYProgress, [start, end], [1, 0.15]);
-  const boxShadow = useTransform(
+  // Before this card's section: hidden beneath (fully opaque but z-index below)
+  // During this card's section: visible, then peels
+  // After: gone
+
+  // Opacity: 0 before its section, 1 during, then animates to 0 as it peels
+  const opacity = useTransform(
     scrollYProgress,
-    [start, end],
-    [
-      '0 20px 60px rgba(0,0,0,0.6), inset 0 0 40px rgba(255,211,0,0.03)',
-      '0 80px 160px rgba(0,0,0,0.95)',
-    ]
+    [Math.max(0, sectionStart - 0.02), sectionStart, peelStart, peelEnd],
+    [0, 1, 1, 0]
   );
+
+  // Scale: on display at 1, shrinks as it peels
+  const scale = useTransform(scrollYProgress, [peelStart, peelEnd], [1, 0.78]);
+
+  // Rotate as it peels
+  const rotateZ = useTransform(
+    scrollYProgress,
+    [peelStart, peelEnd],
+    [0, index % 2 === 0 ? -7 : 7]
+  );
+
+  // Move upward as it peels
+  const y = useTransform(scrollYProgress, [peelStart, peelEnd], ['0vh', '-24vh']);
+
+  // Darken as it peels (simulates falling into shadow)
+  const filterBrightness = useTransform(scrollYProgress, [peelStart, peelEnd], [1, 0.1]);
+
+  // z-index: higher index = on top. Card 0 on bottom, card 3 on top initially.
+  // But we want the CURRENT card to be on top. Reversed: higher = newer layer.
+  // When card i is active, it should be ABOVE cards < i (already peeled).
+  // Card 0 (first) = lowest z-index. Card 3 (last) = highest.
+  const zIndex = index + 1;
 
   return (
     <motion.div
@@ -37,6 +61,7 @@ export function PeelCard({ index, total, config, scrollYProgress }: PeelCardProp
         background: config.gradient,
         borderRadius: '10px',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '2rem',
@@ -44,12 +69,13 @@ export function PeelCard({ index, total, config, scrollYProgress }: PeelCardProp
         y,
         rotateZ,
         opacity,
-        filter: `brightness(${brightness.get()})`,
-        boxShadow,
+        filter: `brightness(${filterBrightness.get()})`,
+        zIndex,
         transformOrigin: 'center bottom',
         border: '1px solid rgba(255,255,255,0.04)',
+        boxShadow: '0 20px 80px rgba(0,0,0,0.7)',
+        pointerEvents: 'none',
       }}
-      initial={{ scale: 1, opacity: 1 }}
     >
       <div style={{ textAlign: 'center' }}>
         <div
@@ -74,6 +100,19 @@ export function PeelCard({ index, total, config, scrollYProgress }: PeelCardProp
         >
           {config.text}
         </h2>
+        {index < total - 1 && (
+          <p
+            style={{
+              marginTop: '2rem',
+              fontSize: '0.7rem',
+              color: 'var(--color-teal)',
+              letterSpacing: '0.15em',
+              opacity: 0.4,
+            }}
+          >
+            继续向下 · 揭开下一层
+          </p>
+        )}
       </div>
     </motion.div>
   );
