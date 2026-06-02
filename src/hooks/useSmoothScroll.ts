@@ -6,9 +6,17 @@ export function useSmoothScroll() {
 
   useEffect(() => {
     const lenis = new Lenis({
-      duration: 1.2,
-      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      duration: 1.8,           // slower, more cinematic
+      easing: (t: number) => {
+        // Custom smoothstep-esque easing for filmic feel
+        return t < 0.5
+          ? 4 * t * t * t
+          : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      },
       smoothWheel: true,
+      wheelMultiplier: 0.9,    // smoother scroll per tick
+      touchMultiplier: 1.5,    // compensate for mobile
+      infinite: false,
     });
 
     lenisRef.current = lenis;

@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { GlitchTitle } from './GlitchTitle';
 import { RotatingEye } from './RotatingEye';
 
@@ -10,11 +10,18 @@ export function HeroSection() {
     offset: ['start start', 'end start'],
   });
 
-  const bgOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
-  const titleY = useTransform(scrollYProgress, [0, 0.5], [0, -120]);
-  const titleOpacity = useTransform(scrollYProgress, [0, 0.4], [1, 0]);
-  const eyeScale = useTransform(scrollYProgress, [0, 0.3], [1, 0.2]);
-  const eyeOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  // Spring-smooth all transforms for buttery feel
+  const rawBgOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
+  const rawTitleY = useTransform(scrollYProgress, [0, 0.5], [0, -120]);
+  const rawTitleOpacity = useTransform(scrollYProgress, [0, 0.4], [1, 0]);
+  const rawEyeScale = useTransform(scrollYProgress, [0, 0.3], [1, 0.2]);
+  const rawEyeOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+
+  const bgOpacity = useSpring(rawBgOpacity, { stiffness: 60, damping: 20 });
+  const titleY = useSpring(rawTitleY, { stiffness: 70, damping: 22 });
+  const titleOpacity = useSpring(rawTitleOpacity, { stiffness: 80, damping: 25 });
+  const eyeScale = useSpring(rawEyeScale, { stiffness: 60, damping: 20 });
+  const eyeOpacity = useSpring(rawEyeOpacity, { stiffness: 70, damping: 22 });
 
   return (
     <motion.section
@@ -25,9 +32,9 @@ export function HeroSection() {
         position: 'relative',
         background: 'var(--color-black)',
         overflow: 'hidden',
+        willChange: 'transform',
       }}
     >
-      {/* Richer ambient gradients */}
       <motion.div
         style={{
           position: 'absolute',
@@ -35,10 +42,10 @@ export function HeroSection() {
           background:
             'radial-gradient(ellipse at 70% 40%, rgba(224,0,0,0.12) 0%, transparent 50%), radial-gradient(ellipse at 30% 60%, rgba(255,211,0,0.06) 0%, transparent 45%), radial-gradient(ellipse at 50% 50%, rgba(44,85,89,0.05) 0%, transparent 60%)',
           opacity: bgOpacity,
+          willChange: 'opacity',
         }}
       />
 
-      {/* Deeper vignette */}
       <div
         style={{
           position: 'absolute',
@@ -63,9 +70,9 @@ export function HeroSection() {
         <motion.div style={{ y: titleY, opacity: titleOpacity, zIndex: 10 }}>
           <GlitchTitle />
           <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.5 }}
-            transition={{ delay: 1.8, duration: 1.2 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 0.5, y: 0 }}
+            transition={{ delay: 1.8, duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
             style={{
               textAlign: 'center',
               color: 'var(--color-red)',
@@ -86,6 +93,7 @@ export function HeroSection() {
             position: 'absolute',
             right: 'clamp(5%, 15vw, 15%)',
             bottom: 'clamp(10%, 20vh, 20%)',
+            willChange: 'transform, opacity',
           }}
         >
           <RotatingEye />
