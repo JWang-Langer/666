@@ -11,4 +11,6 @@ export interface HeartFragment {
   opacity: number;
   color: string;
   delay: number;
+  // For rendering with image clipping
+  clipPoints: { x: number; y: number }[];
 }
