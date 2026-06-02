@@ -1,17 +1,17 @@
 /* ===== JIEJOE-inspired design token variables ===== */
 :root {
-  /* Primary palette */
-  --color-yellow: #FFD300;
-  --color-red: #E00000;
-  --color-teal: #2C5559;
-  --color-black: #0a0a0a;
-  --color-near-black: #1F1F1F;
-  --color-dark: #111111;
+  /* Primary palette — richer, more cinematic */
+  --color-yellow: #F5C800;
+  --color-red: #CC0000;
+  --color-teal: #1A4549;
+  --color-black: #050505;
+  --color-near-black: #151515;
+  --color-dark: #0a0a0a;
 
   /* Accents */
-  --color-green-bg: #0d1110;
-  --color-cream: #e8e0d0;
-  --color-white: #f5f0eb;
+  --color-green-bg: #080e0c;
+  --color-cream: #dad5cc;
+  --color-white: #f0ece5;
 
   /* Timing */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -32,8 +32,8 @@
   --z-noise: 50;
   --z-preloader: 100;
 
-  /* Font families */
-  --font-display: 'Monument Extended', 'Inter', system-ui, sans-serif;
-  --font-body: 'Inter', system-ui, sans-serif;
+  /* Font families — CJK first for Chinese rendering */
+  --font-display: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', 'Inter', system-ui, sans-serif;
+  --font-body: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 }

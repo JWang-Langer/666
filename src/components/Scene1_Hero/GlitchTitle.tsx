@@ -5,10 +5,10 @@ export function GlitchTitle() {
     playMode: 'always',
     createContainers: true,
     hideOverflow: true,
-    timing: { duration: 250, easing: 'ease-in-out' },
-    glitchTimeSpan: { start: 0.5, end: 0.7 },
+    timing: { duration: 300, easing: 'ease-in-out' },
+    glitchTimeSpan: { start: 0.4, end: 0.65 },
     shake: { amplitudeX: 2, amplitudeY: 2 },
-    slice: { count: 6, minHeight: 0.02, maxHeight: 0.15, velocity: 10 },
+    slice: { count: 8, minHeight: 0.02, maxHeight: 0.12, velocity: 12 },
   });
 
   return (
@@ -18,13 +18,14 @@ export function GlitchTitle() {
       style={{
         color: 'var(--color-yellow)',
         textAlign: 'center',
+        textShadow: '0 0 40px rgba(255,211,0,0.15)',
       }}
     >
-      NOTHING IS
+      所见
       <br />
-      WHAT IT
+      皆
       <br />
-      SEEMS
+      虚妄
     </h1>
   );
 }

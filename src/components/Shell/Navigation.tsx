@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
-const SECTIONS = ['SURFACE', 'DESCENT', 'SHATTER', 'ANATOMY', 'RAW'];
+const SECTIONS = ['表象', '逐层', '碎裂', '解剖', '真相'];
 
 export function Navigation() {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -20,15 +20,16 @@ export function Navigation() {
 
   return (
     <nav
+      className="section-nav"
       style={{
         position: 'fixed',
-        right: '2rem',
+        right: 'clamp(0.75rem, 2vw, 2rem)',
         top: '50%',
         transform: 'translateY(-50%)',
         zIndex: 40,
         display: 'flex',
         flexDirection: 'column',
-        gap: '1.5rem',
+        gap: 'clamp(1rem, 2vw, 1.5rem)',
       }}
     >
       {SECTIONS.map((label, i) => (
@@ -43,15 +44,14 @@ export function Navigation() {
         >
           <motion.span
             style={{
-              fontSize: '0.65rem',
-              fontWeight: 600,
-              letterSpacing: '0.15em',
+              fontSize: 'clamp(0.6rem, 1vw, 0.75rem)',
+              fontWeight: 500,
+              letterSpacing: '0.12em',
               color: 'var(--color-yellow)',
               fontFamily: 'var(--font-body)',
-              textTransform: 'uppercase',
             }}
             animate={{
-              opacity: i === activeIndex ? 1 : 0,
+              opacity: i === activeIndex ? 0.9 : 0,
               x: i === activeIndex ? 0 : 10,
             }}
             transition={{ duration: 0.3 }}
@@ -60,14 +60,15 @@ export function Navigation() {
           </motion.span>
           <motion.div
             style={{
-              width: i === activeIndex ? '10px' : '6px',
-              height: i === activeIndex ? '10px' : '6px',
+              width: i === activeIndex ? '10px' : '5px',
+              height: i === activeIndex ? '10px' : '5px',
               borderRadius: '50%',
+              background: i === activeIndex ? 'var(--color-yellow)' : 'transparent',
               border: '1px solid var(--color-yellow)',
+              boxShadow: i === activeIndex ? '0 0 8px rgba(255,211,0,0.4)' : 'none',
             }}
             animate={{
-              background: i === activeIndex ? 'var(--color-yellow)' : 'transparent',
-              scale: i === activeIndex ? 1.2 : 1,
+              scale: i === activeIndex ? 1.3 : 1,
             }}
             transition={{ duration: 0.3 }}
           />

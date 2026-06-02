@@ -32,18 +32,18 @@ export function AnatomySection() {
     const w = canvas.offsetWidth;
     const h = canvas.offsetHeight;
 
-    const vessels = Array.from({ length: 20 }, () => {
+    const vessels = Array.from({ length: 24 }, () => {
       const points: { x: number; y: number; phase: number; amp: number }[] = [];
       const numPts = 5 + Math.floor(Math.random() * 8);
       for (let j = 0; j < numPts; j++) {
         points.push({
-          x: (j / (numPts - 1)) * w + (Math.random() - 0.5) * w * 0.3,
-          y: (Math.random() * 0.6 + 0.2) * h,
+          x: (j / (numPts - 1)) * w + (Math.random() - 0.5) * w * 0.25,
+          y: (Math.random() * 0.5 + 0.25) * h,
           phase: Math.random() * Math.PI * 2,
-          amp: 5 + Math.random() * 30,
+          amp: 6 + Math.random() * 35,
         });
       }
-      return { points, width: 0.3 + Math.random() * 2, speed: 0.3 + Math.random() * 0.7 };
+      return { points, width: 0.4 + Math.random() * 2.2, speed: 0.2 + Math.random() * 0.8 };
     });
 
     function render(time: number) {
@@ -52,37 +52,51 @@ export function AnatomySection() {
       ctx.save();
       ctx.scale(dpr, dpr);
 
+      // Central glow
+      const glow = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.min(w, h) * 0.4);
+      glow.addColorStop(0, 'rgba(224,0,0,0.03)');
+      glow.addColorStop(1, 'transparent');
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, w, h);
+
       vessels.forEach((v) => {
         ctx.beginPath();
         const pts = v.points;
-        ctx.moveTo(pts[0].x, pts[0].y + Math.sin(time * 0.001 * v.speed + pts[0].phase) * pts[0].amp);
+        ctx.moveTo(
+          pts[0].x,
+          pts[0].y + Math.sin(time * 0.0008 * v.speed + pts[0].phase) * pts[0].amp
+        );
 
         for (let k = 1; k < pts.length - 2; k += 3) {
           const p1 = pts[k];
           const p2 = pts[k + 1];
           const p3 = pts[k + 2];
           ctx.bezierCurveTo(
-            p1.x, p1.y + Math.sin(time * 0.001 * v.speed + p1.phase) * p1.amp,
-            p2.x, p2.y + Math.sin(time * 0.001 * v.speed + p2.phase) * p2.amp,
-            p3.x, p3.y + Math.sin(time * 0.001 * v.speed + p3.phase) * p3.amp
+            p1.x,
+            p1.y + Math.sin(time * 0.0008 * v.speed + p1.phase) * p1.amp,
+            p2.x,
+            p2.y + Math.sin(time * 0.0008 * v.speed + p2.phase) * p2.amp,
+            p3.x,
+            p3.y + Math.sin(time * 0.0008 * v.speed + p3.phase) * p3.amp
           );
         }
 
-        ctx.strokeStyle = `rgba(224,0,0,${0.15 + Math.random() * 0.1})`;
+        ctx.strokeStyle = `rgba(224,0,0,${0.1 + Math.random() * 0.08})`;
         ctx.lineWidth = v.width;
         ctx.stroke();
       });
 
-      for (let m = 0; m < 15; m++) {
-        const cx = w * 0.1 + (m / 15) * w * 0.8;
-        const cy = h * 0.3 + Math.sin(time * 0.0005 + m) * h * 0.2;
-        const r = 10 + Math.sin(time * 0.002 + m * 1.5) * 5;
+      // Cells
+      for (let m = 0; m < 18; m++) {
+        const cx = w * 0.08 + (m / 18) * w * 0.84;
+        const cy = h * 0.28 + Math.sin(time * 0.0004 + m * 0.7) * h * 0.22;
+        const r = 8 + Math.sin(time * 0.0015 + m * 1.3) * 4;
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(44,85,89,0.2)';
-        ctx.lineWidth = 0.5;
+        ctx.strokeStyle = 'rgba(44,85,89,0.18)';
+        ctx.lineWidth = 0.6;
         ctx.stroke();
-        ctx.fillStyle = 'rgba(44,85,89,0.05)';
+        ctx.fillStyle = 'rgba(44,85,89,0.04)';
         ctx.fill();
       }
 
@@ -115,6 +129,7 @@ export function AnatomySection() {
           top: 0,
           height: '100vh',
           overflow: 'hidden',
+          background: 'radial-gradient(ellipse at 30% 50%, rgba(224,0,0,0.03) 0%, transparent 50%)',
         }}
       >
         <canvas
@@ -124,7 +139,7 @@ export function AnatomySection() {
             inset: 0,
             width: '100%',
             height: '100%',
-            opacity: 0.7,
+            opacity: 0.75,
           }}
         />
 
@@ -140,15 +155,19 @@ export function AnatomySection() {
             pointerEvents: 'none',
           }}
         >
-          <div style={{ maxWidth: '650px' }}>
+          <div style={{ maxWidth: '620px' }}>
             <h2
               className="display-md text-yellow"
-              data-glitch="BENEATH THE SKIN"
-              style={{ marginBottom: '3rem' }}
+              data-glitch="皮囊之下"
+              style={{
+                marginBottom: '3rem',
+                textShadow: '0 0 30px rgba(255,211,0,0.1)',
+                lineHeight: 1.2,
+              }}
             >
-              BENEATH
+              皮囊
               <br />
-              THE SKIN
+              之下
             </h2>
 
             <GlitchParagraph />

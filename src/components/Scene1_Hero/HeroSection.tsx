@@ -11,9 +11,9 @@ export function HeroSection() {
   });
 
   const bgOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
-  const titleY = useTransform(scrollYProgress, [0, 0.5], [0, -100]);
+  const titleY = useTransform(scrollYProgress, [0, 0.5], [0, -120]);
   const titleOpacity = useTransform(scrollYProgress, [0, 0.4], [1, 0]);
-  const eyeScale = useTransform(scrollYProgress, [0, 0.3], [1, 0.3]);
+  const eyeScale = useTransform(scrollYProgress, [0, 0.3], [1, 0.2]);
   const eyeOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
 
   return (
@@ -27,21 +27,23 @@ export function HeroSection() {
         overflow: 'hidden',
       }}
     >
+      {/* Richer ambient gradients */}
       <motion.div
         style={{
           position: 'absolute',
           inset: 0,
           background:
-            'radial-gradient(ellipse at 70% 50%, rgba(224,0,0,0.08) 0%, transparent 60%), radial-gradient(ellipse at 30% 40%, rgba(255,211,0,0.04) 0%, transparent 50%)',
+            'radial-gradient(ellipse at 70% 40%, rgba(224,0,0,0.12) 0%, transparent 50%), radial-gradient(ellipse at 30% 60%, rgba(255,211,0,0.06) 0%, transparent 45%), radial-gradient(ellipse at 50% 50%, rgba(44,85,89,0.05) 0%, transparent 60%)',
           opacity: bgOpacity,
         }}
       />
 
+      {/* Deeper vignette */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
-          boxShadow: 'inset 0 0 200px 80px rgba(0,0,0,0.7)',
+          boxShadow: 'inset 0 0 250px 100px rgba(0,0,0,0.85)',
           pointerEvents: 'none',
         }}
       />
@@ -62,19 +64,18 @@ export function HeroSection() {
           <GlitchTitle />
           <motion.p
             initial={{ opacity: 0 }}
-            animate={{ opacity: 0.6 }}
-            transition={{ delay: 1.5, duration: 1 }}
+            animate={{ opacity: 0.5 }}
+            transition={{ delay: 1.8, duration: 1.2 }}
             style={{
               textAlign: 'center',
               color: 'var(--color-red)',
-              fontSize: '0.85rem',
+              fontSize: 'clamp(0.75rem, 1.2vw, 0.9rem)',
               fontWeight: 400,
-              letterSpacing: '0.3em',
-              textTransform: 'uppercase',
-              marginTop: '1.5rem',
+              letterSpacing: '0.35em',
+              marginTop: '2rem',
             }}
           >
-            scroll to descend
+            向下滚动 · 坠入深渊
           </motion.p>
         </motion.div>
 
@@ -83,8 +84,8 @@ export function HeroSection() {
             scale: eyeScale,
             opacity: eyeOpacity,
             position: 'absolute',
-            right: '15%',
-            bottom: '20%',
+            right: 'clamp(5%, 15vw, 15%)',
+            bottom: 'clamp(10%, 20vh, 20%)',
           }}
         >
           <RotatingEye />
